@@ -19,7 +19,7 @@ interface MapStageProps {
   onStateClick: (state: StateData) => void;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
 
 // Color interpolator between #818CF8 (low) and #38BDF8 (high)
 function interpolateColor(val: number, min: number, max: number) {

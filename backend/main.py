@@ -13,7 +13,7 @@ import io
 import json
 import time
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 from dotenv import load_dotenv
 
@@ -168,6 +168,12 @@ def _cache_get(key: str) -> Any | None:
 
 
 def _cache_set(key: str, value: Any) -> None:
+    # Periodically clean up expired entries if cache gets too large (e.g. > 1000 items)
+    if len(_cache) > 1000:
+        now = time.time()
+        expired_keys = [k for k, (ts, _) in _cache.items() if now - ts > CACHE_TTL_SECONDS]
+        for k in expired_keys:
+            del _cache[k]
     _cache[key] = (time.time(), value)
 
 
@@ -356,7 +362,7 @@ async def get_opportunities(
     # Always attempt the live SAM.gov call keyless or keyed.
     try:
         client = await _get_client()
-        today = datetime.utcnow()
+        today = datetime.now(timezone.utc)
         posted_to = today.strftime("%m/%d/%Y")
         posted_from = (today - timedelta(days=360)).strftime("%m/%d/%Y")
 
@@ -390,6 +396,8 @@ async def get_opportunities(
                 sol_num = opp.get("solicitationNumber", "N/A")
                 notice_type = opp.get("type") or opp.get("baseType") or "Notice"
                 posted_date = opp.get("postedDate", "")
+                if posted_date and "T" in posted_date:
+                    posted_date = posted_date.split("T")[0]
                 deadline = opp.get("responseDeadLine") or opp.get("archiveDate") or "N/A"
                 if deadline and "T" in deadline:
                     deadline = deadline.split("T")[0]
@@ -404,6 +412,8 @@ async def get_opportunities(
                         pop_state = state_info.get("code", "")
                     elif isinstance(state_info, str):
                         pop_state = state_info
+                if pop_state:
+                    pop_state = pop_state.upper()
                 
                 results.append({
                     "notice_id": notice_id,
@@ -468,6 +478,19 @@ async def get_awards(
     limit: int = Query(25, ge=1, le=100, description="Results per page"),
 ):
     """Return paginated award results from USAspending."""
+    # Resolve FastAPI Query objects if called directly in Python (e.g. testing/debugging)
+    from fastapi.params import Query as FastAPIQuery
+    if isinstance(agency, FastAPIQuery):
+        agency = None
+    if isinstance(category, FastAPIQuery):
+        category = None
+    if isinstance(state, FastAPIQuery):
+        state = None
+    if isinstance(page, FastAPIQuery):
+        page = 1
+    if isinstance(limit, FastAPIQuery):
+        limit = 25
+
     cache_key = f"awards:{agency}:{category}:{state}:{page}:{limit}"
     cached = _cache_get(cache_key)
     if cached is not None:
@@ -543,6 +566,15 @@ async def get_vendors(
     Fetches a large page of awards sorted by amount descending, then
     aggregates by recipient name in Python.
     """
+    # Resolve FastAPI Query objects if called directly in Python (e.g. testing/debugging)
+    from fastapi.params import Query as FastAPIQuery
+    if isinstance(agency, FastAPIQuery):
+        agency = None
+    if isinstance(category, FastAPIQuery):
+        category = None
+    if isinstance(state, FastAPIQuery):
+        state = None
+
     cache_key = f"vendors:{agency}:{category}:{state}"
     cached = _cache_get(cache_key)
     if cached is not None:
@@ -612,6 +644,13 @@ async def get_states(
     Return award totals aggregated by state, including lat/lng centroids
     for map display.
     """
+    # Resolve FastAPI Query objects if called directly in Python (e.g. testing/debugging)
+    from fastapi.params import Query as FastAPIQuery
+    if isinstance(agency, FastAPIQuery):
+        agency = None
+    if isinstance(category, FastAPIQuery):
+        category = None
+
     cache_key = f"states:{agency}:{category}"
     cached = _cache_get(cache_key)
     if cached is not None:
@@ -719,6 +758,15 @@ async def get_awards_csv(
     Download the full award results as a CSV file.
     Fetches multiple pages to get a comprehensive export (up to 500 rows).
     """
+    # Resolve FastAPI Query objects if called directly in Python (e.g. testing/debugging)
+    from fastapi.params import Query as FastAPIQuery
+    if isinstance(agency, FastAPIQuery):
+        agency = None
+    if isinstance(category, FastAPIQuery):
+        category = None
+    if isinstance(state, FastAPIQuery):
+        state = None
+
     cache_key = f"csv:{agency}:{category}:{state}"
     cached = _cache_get(cache_key)
     if cached is not None:
