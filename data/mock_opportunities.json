@@ -1,0 +1,77 @@
+[
+  {
+    "title": "Tactical Communications Hardware Support",
+    "agencies": [
+      "Department of Defense",
+      "Department of the Army",
+      "Department of the Navy",
+      "Department of the Air Force"
+    ],
+    "notice_type": "Solicitation",
+    "description": "Provide engineering and technical services for tactical communications systems."
+  },
+  {
+    "title": "Enterprise Cloud Migration and Integration Services",
+    "agencies": [
+      "Department of Veterans Affairs",
+      "Department of Homeland Security",
+      "General Services Administration"
+    ],
+    "notice_type": "Solicitation",
+    "description": "Migrate legacy applications to secure government cloud environment."
+  },
+  {
+    "title": "Security Guard and Patrol Services",
+    "agencies": [
+      "Department of Justice",
+      "Department of State",
+      "Department of Homeland Security"
+    ],
+    "notice_type": "Presolicitation",
+    "description": "Provide physical security guard services for federal facilities."
+  },
+  {
+    "title": "National Forest Trail Restoration Project",
+    "agencies": [
+      "Department of Agriculture",
+      "Department of the Interior"
+    ],
+    "notice_type": "Combined Synopsis/Solicitation",
+    "description": "Trail clearing and maintenance in national forests."
+  },
+  {
+    "title": "Medical Equipment and Supply Delivery",
+    "agencies": [
+      "Department of Veterans Affairs",
+      "Department of Health and Human Services"
+    ],
+    "notice_type": "Special Notice",
+    "description": "Provide medical-grade diagnostic equipment and daily consumables."
+  },
+  {
+    "title": "Highway Infrastructure Structural Engineering Support",
+    "agencies": [
+      "Department of Transportation"
+    ],
+    "notice_type": "Presolicitation",
+    "description": "Structural analysis and survey for highway bridges."
+  },
+  {
+    "title": "Scientific Research and Laboratory Equipment Calibration",
+    "agencies": [
+      "Department of Commerce",
+      "Department of Energy",
+      "Environmental Protection Agency"
+    ],
+    "notice_type": "Sources Sought",
+    "description": "Calibrate precision laboratory equipment for environmental sensing."
+  },
+  {
+    "title": "Aeronautical Testing and Space Flight System Integration",
+    "agencies": [
+      "National Aeronautics and Space Administration"
+    ],
+    "notice_type": "Solicitation",
+    "description": "Support structural testing of space flight materials."
+  }
+]

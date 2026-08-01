@@ -6,28 +6,51 @@ Proxies requests to the USAspending.gov public API (v2) and adds:
   • Unified error handling with fallback empty responses
   • CSV export for award data
 """
-
 from __future__ import annotations
 
 import csv
 import io
+import json
 import time
+import os
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
+from dotenv import load_dotenv
 
 import httpx
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+
+# Load environment variables
+load_dotenv()
+
+SAM_API_KEY = os.getenv("SAM_API_KEY", "")
+USASPENDING_API_KEY = os.getenv("USASPENDING_API_KEY", "")
+
+def is_valid_api_key(key: str | None) -> bool:
+    if not key:
+        return False
+    key_upper = key.strip().upper()
+    return "YOUR_" not in key_upper and "PLACEHOLDER" not in key_upper and len(key.strip()) > 5
+
 
 # ---------------------------------------------------------------------------
 # App
 # ---------------------------------------------------------------------------
 app = FastAPI(title="Procurement Intelligence API")
 
+cors_origins_env = os.getenv("CORS_ORIGINS", "*")
+
+if cors_origins_env == "*":
+    cors_origins = ["*"]
+else:
+    cors_origins = [o.strip() for o in cors_origins_env.split(",")]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=cors_origins,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -35,7 +58,8 @@ app.add_middleware(
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-USA_SPENDING_BASE = "https://api.usaspending.gov/api/v2"
+USA_SPENDING_BASE = os.getenv("USASPENDING_API_URL", "https://api.usaspending.gov/api/v2")
+SAM_API_URL = os.getenv("SAM_API_URL", "https://api.sam.gov/opportunities/v2/search")
 CACHE_TTL_SECONDS = 3600  # 1 hour
 
 # Default time period – current fiscal year
@@ -151,6 +175,12 @@ def _cache_get(key: str) -> Any | None:
 
 
 def _cache_set(key: str, value: Any) -> None:
+    # Periodically clean up expired entries if cache gets too large (e.g. > 1000 items)
+    if len(_cache) > 1000:
+        now = time.time()
+        expired_keys = [k for k, (ts, _) in _cache.items() if now - ts > CACHE_TTL_SECONDS]
+        for k in expired_keys:
+            del _cache[k]
     _cache[key] = (time.time(), value)
 
 
@@ -178,7 +208,10 @@ async def _post(path: str, payload: dict) -> dict:
     """POST to USAspending API and return parsed JSON."""
     client = await _get_client()
     url = f"{USA_SPENDING_BASE}{path}"
-    resp = await client.post(url, json=payload)
+    headers = {}
+    if is_valid_api_key(USASPENDING_API_KEY):
+        headers["X-API-KEY"] = USASPENDING_API_KEY
+    resp = await client.post(url, json=payload, headers=headers)
     resp.raise_for_status()
     return resp.json()
 
@@ -187,9 +220,13 @@ async def _get(path: str, params: dict | None = None) -> Any:
     """GET from USAspending API and return parsed JSON."""
     client = await _get_client()
     url = f"{USA_SPENDING_BASE}{path}"
-    resp = await client.get(url, params=params)
+    headers = {}
+    if is_valid_api_key(USASPENDING_API_KEY):
+        headers["X-API-KEY"] = USASPENDING_API_KEY
+    resp = await client.get(url, params=params, headers=headers)
     resp.raise_for_status()
     return resp.json()
+
 
 
 # ---------------------------------------------------------------------------
@@ -231,19 +268,213 @@ def _build_filters(
     return filters
 
 
+# Path to mock opportunities JSON (relative to project root)
+_MOCK_OPPS_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "data", "mock_opportunities.json"
+)
+
+
+def _generate_simulated_opportunities(agency: str | None = None, state: str | None = None) -> list[dict]:
+    # Load templates from external JSON file
+    with open(_MOCK_OPPS_PATH, "r") as f:
+        templates = json.load(f)
+
+    import random
+    # Seed with parameters to keep pages consistent for a given query
+    seed_str = f"{agency or ''}:{state or ''}"
+    val = sum(ord(c) for c in seed_str) if seed_str else 42
+    rnd = random.Random(val)
+
+    state_list = [state] if state else ["CA", "TX", "VA", "FL", "DC", "NY", "IL", "GA"]
+    
+    results = []
+    for i in range(1, 26):
+        if agency:
+            matching = [t for t in templates if any(agency.lower() in a.lower() for a in t["agencies"])]
+            tpl = rnd.choice(matching) if matching else rnd.choice(templates)
+        else:
+            tpl = rnd.choice(templates)
+        
+        pop_state = rnd.choice(state_list)
+        
+        today = datetime(2026, 6, 17)
+        posted_days_ago = rnd.randint(1, 30)
+        posted_date = today - timedelta(days=posted_days_ago)
+        
+        deadline_days_future = rnd.randint(10, 45)
+        deadline_date = today + timedelta(days=deadline_days_future)
+        
+        dept = agency if agency else rnd.choice(tpl["agencies"])
+        
+        notice_id = f"sim-{pop_state.lower()}-{100000 + rnd.randint(1000, 99999)}"
+        sol_num = f"SOL-{pop_state}-{posted_date.year}-{1000 + i}"
+        
+        results.append({
+            "notice_id": notice_id,
+            "title": tpl["title"],
+            "solicitation_number": sol_num,
+            "notice_type": tpl["notice_type"],
+            "posted_date": posted_date.strftime("%Y-%m-%d"),
+            "response_deadline": deadline_date.strftime("%Y-%m-%d"),
+            "department": dept,
+            "state": pop_state,
+            "ui_url": f"https://sam.gov/opp/{notice_id}/view"
+        })
+
+    results.sort(key=lambda x: x["posted_date"], reverse=True)
+    return results
+
+
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
 
 @app.get("/api/health")
-def health_check():
-    return {"status": "ok"}
+def health_check(response: Response):
+    response.headers["X-Live-Vs-Mock"] = "live"
+    return {"status": "ok", "source": "live"}
+
+
+@app.get("/api/opportunities")
+async def get_opportunities(
+    response: Response,
+    agency: Optional[str] = Query(None, description="Awarding agency or organization name"),
+    state: Optional[str] = Query(None, description="Two-letter state code"),
+    page: int = Query(1, ge=1, description="Page number"),
+    limit: int = Query(10, ge=1, le=100, description="Results per page"),
+):
+    """
+    Return recent federal procurement opportunities from SAM.gov.
+    Attempts to call live SAM.gov API. If the call fails (network error, auth error, etc.),
+    falls back gracefully to simulated opportunities.
+    """
+    # Resolve FastAPI Query objects if called directly in Python (e.g. testing/debugging)
+    from fastapi.params import Query as FastAPIQuery
+    if isinstance(agency, FastAPIQuery):
+        agency = None
+    if isinstance(state, FastAPIQuery):
+        state = None
+    if isinstance(page, FastAPIQuery):
+        page = 1
+    if isinstance(limit, FastAPIQuery):
+        limit = 10
+
+    cache_key = f"opps:{agency}:{state}:{page}:{limit}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        response.headers["X-Live-Vs-Mock"] = cached.get("source", "live")
+        return cached
+
+    # Always attempt the live SAM.gov call keyless or keyed.
+    try:
+        client = await _get_client()
+        today = datetime.now(timezone.utc)
+        posted_to = today.strftime("%m/%d/%Y")
+        posted_from = (today - timedelta(days=360)).strftime("%m/%d/%Y")
+
+        params = {
+            "postedFrom": posted_from,
+            "postedTo": posted_to,
+            "limit": limit,
+            "offset": (page - 1) * limit,
+        }
+
+        # Wire in SAM.gov API key if it's set and not standard placeholder
+        if is_valid_api_key(SAM_API_KEY):
+            params["api_key"] = SAM_API_KEY
+
+        if state:
+            params["state"] = state
+
+        if agency:
+            params["organizationName"] = agency
+
+        resp = await client.get(SAM_API_URL, params=params)
+        
+        if resp.status_code == 200:
+            data = resp.json()
+            opps_list = data.get("opportunitiesData", [])
+            
+            results = []
+            for opp in opps_list:
+                notice_id = opp.get("noticeId", "")
+                title = opp.get("title", "")
+                sol_num = opp.get("solicitationNumber", "N/A")
+                notice_type = opp.get("type") or opp.get("baseType") or "Notice"
+                posted_date = opp.get("postedDate", "")
+                if posted_date and "T" in posted_date:
+                    posted_date = posted_date.split("T")[0]
+                deadline = opp.get("responseDeadLine") or opp.get("archiveDate") or "N/A"
+                if deadline and "T" in deadline:
+                    deadline = deadline.split("T")[0]
+                
+                dept = opp.get("fullParentPathName", "").split(".")[0] if opp.get("fullParentPathName") else "Federal Agency"
+                
+                pop_state = ""
+                pop = opp.get("placeOfPerformance") or {}
+                if isinstance(pop, dict):
+                    state_info = pop.get("state", {})
+                    if isinstance(state_info, dict):
+                        pop_state = state_info.get("code", "")
+                    elif isinstance(state_info, str):
+                        pop_state = state_info
+                if pop_state:
+                    pop_state = pop_state.upper()
+                
+                results.append({
+                    "notice_id": notice_id,
+                    "title": title,
+                    "solicitation_number": sol_num,
+                    "notice_type": notice_type,
+                    "posted_date": posted_date,
+                    "response_deadline": deadline,
+                    "department": dept,
+                    "state": pop_state or state or "USA",
+                    "ui_url": f"https://sam.gov/opp/{notice_id}/view" if notice_id else "https://sam.gov"
+                })
+            
+            res_payload = {
+                "results": results,
+                "total": data.get("totalRecords", len(results)),
+                "page": page,
+                "limit": limit,
+                "is_simulated": False,
+                "source": "live"
+            }
+            response.headers["X-Live-Vs-Mock"] = "live"
+            _cache_set(cache_key, res_payload)
+            return res_payload
+        else:
+            print(f"SAM.gov API returned status {resp.status_code}: {resp.text}")
+    except Exception as e:
+        print(f"SAM.gov API request failed: {e}")
+
+    # Fallback / Simulated Data
+    simulated_opps = _generate_simulated_opportunities(agency, state)
+    
+    start_idx = (page - 1) * limit
+    end_idx = start_idx + limit
+    paginated = simulated_opps[start_idx:end_idx]
+    
+    res_payload = {
+        "results": paginated,
+        "total": len(simulated_opps),
+        "page": page,
+        "limit": limit,
+        "is_simulated": True,
+        "source": "mock"
+    }
+    response.headers["X-Live-Vs-Mock"] = "mock"
+    _cache_set(cache_key, res_payload)
+    return res_payload
 
 
 # ── 1. Awards ──────────────────────────────────────────────────────────────
 
 @app.get("/api/awards")
 async def get_awards(
+    response: Response,
     agency: Optional[str] = Query(None, description="Awarding agency name"),
     category: Optional[str] = Query(
         None,
@@ -254,9 +485,23 @@ async def get_awards(
     limit: int = Query(25, ge=1, le=100, description="Results per page"),
 ):
     """Return paginated award results from USAspending."""
+    # Resolve FastAPI Query objects if called directly in Python (e.g. testing/debugging)
+    from fastapi.params import Query as FastAPIQuery
+    if isinstance(agency, FastAPIQuery):
+        agency = None
+    if isinstance(category, FastAPIQuery):
+        category = None
+    if isinstance(state, FastAPIQuery):
+        state = None
+    if isinstance(page, FastAPIQuery):
+        page = 1
+    if isinstance(limit, FastAPIQuery):
+        limit = 25
+
     cache_key = f"awards:{agency}:{category}:{state}:{page}:{limit}"
     cached = _cache_get(cache_key)
     if cached is not None:
+        response.headers["X-Live-Vs-Mock"] = cached.get("source", "live")
         return cached
 
     try:
@@ -287,31 +532,37 @@ async def get_awards(
                 "state": r.get("Place of Performance State Code"),
             })
 
-        response = {
+        res_payload = {
             "results": results,
             "page": page,
             "limit": limit,
             "has_next": raw.get("page_metadata", {}).get("hasNext", False),
             "total": raw.get("page_metadata", {}).get("total", 0),
+            "source": "live",
         }
-        _cache_set(cache_key, response)
-        return response
+        response.headers["X-Live-Vs-Mock"] = "live"
+        _cache_set(cache_key, res_payload)
+        return res_payload
 
     except Exception as exc:
-        return {
+        res_payload = {
             "results": [],
             "page": page,
             "limit": limit,
             "has_next": False,
             "total": 0,
             "error": str(exc),
+            "source": "mock",
         }
+        response.headers["X-Live-Vs-Mock"] = "mock"
+        return res_payload
 
 
 # ── 2. Vendors (Top 20) ───────────────────────────────────────────────────
 
 @app.get("/api/vendors")
 async def get_vendors(
+    response: Response,
     agency: Optional[str] = Query(None),
     category: Optional[str] = Query(None),
     state: Optional[str] = Query(None),
@@ -322,9 +573,19 @@ async def get_vendors(
     Fetches a large page of awards sorted by amount descending, then
     aggregates by recipient name in Python.
     """
+    # Resolve FastAPI Query objects if called directly in Python (e.g. testing/debugging)
+    from fastapi.params import Query as FastAPIQuery
+    if isinstance(agency, FastAPIQuery):
+        agency = None
+    if isinstance(category, FastAPIQuery):
+        category = None
+    if isinstance(state, FastAPIQuery):
+        state = None
+
     cache_key = f"vendors:{agency}:{category}:{state}"
     cached = _cache_get(cache_key)
     if cached is not None:
+        response.headers["X-Live-Vs-Mock"] = cached.get("source", "live")
         return cached
 
     try:
@@ -360,18 +621,29 @@ async def get_vendors(
             for name, total in sorted_vendors
         ]
 
-        response = {"results": results}
-        _cache_set(cache_key, response)
-        return response
+        res_payload = {
+            "results": results,
+            "source": "live",
+        }
+        response.headers["X-Live-Vs-Mock"] = "live"
+        _cache_set(cache_key, res_payload)
+        return res_payload
 
     except Exception as exc:
-        return {"results": [], "error": str(exc)}
+        res_payload = {
+            "results": [],
+            "error": str(exc),
+            "source": "mock",
+        }
+        response.headers["X-Live-Vs-Mock"] = "mock"
+        return res_payload
 
 
 # ── 3. States (geographic aggregation) ─────────────────────────────────────
 
 @app.get("/api/states")
 async def get_states(
+    response: Response,
     agency: Optional[str] = Query(None),
     category: Optional[str] = Query(None),
 ):
@@ -379,9 +651,17 @@ async def get_states(
     Return award totals aggregated by state, including lat/lng centroids
     for map display.
     """
+    # Resolve FastAPI Query objects if called directly in Python (e.g. testing/debugging)
+    from fastapi.params import Query as FastAPIQuery
+    if isinstance(agency, FastAPIQuery):
+        agency = None
+    if isinstance(category, FastAPIQuery):
+        category = None
+
     cache_key = f"states:{agency}:{category}"
     cached = _cache_get(cache_key)
     if cached is not None:
+        response.headers["X-Live-Vs-Mock"] = cached.get("source", "live")
         return cached
 
     try:
@@ -408,22 +688,33 @@ async def get_states(
                 "lng": centroid.get("lng"),
             })
 
-        response = {"results": results}
-        _cache_set(cache_key, response)
-        return response
+        res_payload = {
+            "results": results,
+            "source": "live",
+        }
+        response.headers["X-Live-Vs-Mock"] = "live"
+        _cache_set(cache_key, res_payload)
+        return res_payload
 
     except Exception as exc:
-        return {"results": [], "error": str(exc)}
+        res_payload = {
+            "results": [],
+            "error": str(exc),
+            "source": "mock",
+        }
+        response.headers["X-Live-Vs-Mock"] = "mock"
+        return res_payload
 
 
 # ── 4. Agencies (for filter dropdown) ──────────────────────────────────────
 
 @app.get("/api/agencies")
-async def get_agencies():
+async def get_agencies(response: Response):
     """Return list of toptier agencies for use in filter dropdowns."""
     cache_key = "agencies"
     cached = _cache_get(cache_key)
     if cached is not None:
+        response.headers["X-Live-Vs-Mock"] = cached.get("source", "live")
         return cached
 
     try:
@@ -444,12 +735,22 @@ async def get_agencies():
         # Sort alphabetically by name
         results.sort(key=lambda x: (x.get("name") or "").lower())
 
-        response = {"results": results}
-        _cache_set(cache_key, response)
-        return response
+        res_payload = {
+            "results": results,
+            "source": "live",
+        }
+        response.headers["X-Live-Vs-Mock"] = "live"
+        _cache_set(cache_key, res_payload)
+        return res_payload
 
     except Exception as exc:
-        return {"results": [], "error": str(exc)}
+        res_payload = {
+            "results": [],
+            "error": str(exc),
+            "source": "mock",
+        }
+        response.headers["X-Live-Vs-Mock"] = "mock"
+        return res_payload
 
 
 # ── 5. CSV Export ──────────────────────────────────────────────────────────
@@ -464,10 +765,20 @@ async def get_awards_csv(
     Download the full award results as a CSV file.
     Fetches multiple pages to get a comprehensive export (up to 500 rows).
     """
+    # Resolve FastAPI Query objects if called directly in Python (e.g. testing/debugging)
+    from fastapi.params import Query as FastAPIQuery
+    if isinstance(agency, FastAPIQuery):
+        agency = None
+    if isinstance(category, FastAPIQuery):
+        category = None
+    if isinstance(state, FastAPIQuery):
+        state = None
+
     cache_key = f"csv:{agency}:{category}:{state}"
     cached = _cache_get(cache_key)
     if cached is not None:
-        csv_content = cached
+        csv_content = cached.get("content", "")
+        source = cached.get("source", "live")
     else:
         try:
             filters = _build_filters(agency=agency, category=category, state=state)
@@ -510,7 +821,8 @@ async def get_awards_csv(
                 writer.writerow(row)
 
             csv_content = output.getvalue()
-            _cache_set(cache_key, csv_content)
+            source = "live"
+            _cache_set(cache_key, {"content": csv_content, "source": source})
 
         except Exception:
             # Return an empty CSV on error
@@ -518,11 +830,14 @@ async def get_awards_csv(
             writer = csv.writer(output)
             writer.writerow(["Error", "No data available"])
             csv_content = output.getvalue()
+            source = "mock"
+            _cache_set(cache_key, {"content": csv_content, "source": source})
 
     return StreamingResponse(
         iter([csv_content]),
         media_type="text/csv",
         headers={
-            "Content-Disposition": "attachment; filename=procurement_awards.csv"
+            "Content-Disposition": "attachment; filename=procurement_awards.csv",
+            "X-Live-Vs-Mock": source
         },
     )

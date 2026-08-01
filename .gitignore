@@ -17,3 +17,7 @@ backend/.pytest_cache/
 .DS_Store
 *.log
 repomix-output.xml
+.env
+.env.local
+backend/.env
+frontend/.env.production

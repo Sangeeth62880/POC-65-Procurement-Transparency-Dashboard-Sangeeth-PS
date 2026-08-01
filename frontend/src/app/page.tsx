@@ -24,7 +24,7 @@ interface StateData {
   lng: number | null;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
 
 export default function Home() {
   const [agencies, setAgencies] = useState<Agency[]>([]);
@@ -39,6 +39,19 @@ export default function Home() {
 
   // Toggle to show/hide charts modal (default to hidden)
   const [showCharts, setShowCharts] = useState(false);
+
+  // Slide-over panel state
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
+
+  // Theme and map style state
+  const [isDark, setIsDark] = useState(true);
+  const [isLight, setIsLight] = useState(false);
+
+  const styleUrl = isLight
+    ? "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
+    : "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
+
+  const markerColor = isLight ? "#C0392B" : "#F0A500";
 
   // Fetch agencies on mount
   useEffect(() => {
@@ -76,12 +89,16 @@ export default function Home() {
   const handleStateClick = (stateData: StateData) => {
     setSelectedStateData(stateData);
     setSelectedState(stateData.state_code);
+    setIsPanelOpen(true);
   };
 
   return (
-    <div className="flex h-screen w-screen flex-col overflow-hidden bg-bg text-text-primary">
-      {/* Top Header */}
-      <Topbar />
+    <div className="flex h-screen w-screen flex-col overflow-hidden text-text-primary" style={{ background: '#0F0B08' }}>
+      {/* Floating pill Topbar — position:fixed, outside document flow */}
+      <Topbar
+        isDark={!isLight}
+        onToggleTheme={() => setIsLight(prev => !prev)}
+      />
 
       {/* Filter Row */}
       <FilterBar
@@ -93,54 +110,66 @@ export default function Home() {
         onCategoryChange={setSelectedCategory}
         onStateChange={setSelectedState}
         onClearFilters={handleClearFilters}
+        isDark={isDark}
       />
 
-      {/* Main Layout Container - NO LAYOUT SHIFT */}
-      <div className="flex flex-col flex-1 w-full h-[calc(100vh-96px)] overflow-hidden relative">
+      {/* Main Layout Container — full height, no header offset */}
+      <div className="flex-1 w-full h-screen overflow-hidden relative">
         
-        {/* Fixed Split Layout: Map (70%) & Sidebar (30%) - ALWAYS SAME HEIGHT */}
-        <div className="grid grid-cols-[70%_30%] w-full h-full">
-          {/* Map Stage (70% width) */}
-          <div className="w-full h-full border-r border-border relative overflow-hidden bg-bg">
-            <MapStage
-              agency={selectedAgency}
-              category={selectedCategory}
-              onStateClick={handleStateClick}
-            />
+        {/* Map fills entire screen */}
+        <div className="w-full h-full relative overflow-hidden bg-bg">
+          <MapStage
+            key={styleUrl}
+            styleUrl={styleUrl}
+            markerColor={markerColor}
+            agency={selectedAgency}
+            category={selectedCategory}
+            onStateClick={handleStateClick}
+          />
 
-            {/* Toggle Button in bottom-right corner of Map */}
-            <button
-              onClick={() => setShowCharts(!showCharts)}
-              className="absolute bottom-3 right-3 flex items-center space-x-1.5 border border-border bg-surface hover:bg-surface/80 px-2.5 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider text-text-muted transition-colors duration-200 z-20 cursor-pointer shadow-lg animate-fadeIn"
+          {/* Toggle Button in bottom-right corner of Map */}
+          <button
+            onClick={() => setShowCharts(!showCharts)}
+            className="absolute bottom-3 right-3 flex items-center space-x-1.5 border border-border bg-surface hover:bg-surface/80 px-2.5 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider text-text-muted transition-colors duration-200 z-20 cursor-pointer shadow-lg animate-fadeIn"
+          >
+            <span>{showCharts ? "Hide Charts" : "Show Charts"}</span>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className={`transform transition-transform duration-300 ${showCharts ? "rotate-180" : ""}`}
             >
-              <span>{showCharts ? "Hide Charts" : "Show Charts"}</span>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className={`transform transition-transform duration-300 ${showCharts ? "rotate-180" : ""}`}
-              >
-                <polyline points="18 15 12 9 6 15" />
-              </svg>
-            </button>
-          </div>
+              <polyline points="18 15 12 9 6 15" />
+            </svg>
+          </button>
+        </div>
 
-          {/* Sidebar Section (30% width) - Fixed/Always Visible */}
-          <div className="w-full h-full overflow-hidden">
-            <Sidebar
-              agency={selectedAgency}
-              category={selectedCategory}
-              state={selectedState}
-              selectedStateData={selectedStateData}
-              onCloseStateDetail={() => setSelectedStateData(null)}
-            />
-          </div>
+        {/* Sidebar Slide-Over Panel */}
+        <div
+          className="fixed top-0 right-0 h-screen z-40 transition-transform duration-[250ms] ease-out"
+          style={{
+            width: '360px',
+            background: '#1A1410',
+            borderLeft: '1px solid #2E2418',
+            transform: isPanelOpen ? 'translateX(0)' : 'translateX(100%)',
+          }}
+        >
+          <Sidebar
+            agency={selectedAgency}
+            category={selectedCategory}
+            state={selectedState}
+            selectedStateData={selectedStateData}
+            onCloseStateDetail={() => setSelectedStateData(null)}
+            isOpen={isPanelOpen}
+            onClose={() => setIsPanelOpen(false)}
+            isDark={isDark}
+          />
         </div>
 
         {/* Charts Modal Overlay - POSITIONED ABOVE MAP & SIDEBAR, NO LAYOUT SHIFT */}

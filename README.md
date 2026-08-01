@@ -88,3 +88,61 @@ npm run dev
 ```
 
 * Open your browser and navigate to `http://localhost:3000` to view the dashboard.
+
+---
+
+## 🚀 Deployment
+
+### Backend — Railway
+
+1. Go to [railway.app](https://railway.app) → New Project → Deploy from GitHub repo
+2. Select this repository
+3. Set root directory to: `backend`
+4. Add environment variable:
+   `CORS_ORIGINS=https://your-vercel-app.vercel.app`
+5. Go to Settings → Networking → Generate Domain
+6. Copy your Railway backend URL
+
+### Frontend — Vercel
+
+1. Go to [vercel.com](https://vercel.com) → New Project → Import from GitHub
+2. Select this repository
+3. Set root directory to: `frontend`
+4. Add environment variable:
+   `NEXT_PUBLIC_API_BASE_URL=https://your-backend.railway.app`
+5. Click Deploy
+
+### After deployment
+
+Update Railway `CORS_ORIGINS` to match your actual Vercel frontend URL.
+
+---
+
+## 🐳 Docker Compose
+
+Run both services locally with Docker:
+
+```bash
+docker-compose up --build
+```
+
+- Frontend: `http://localhost:3000`
+- Backend: `http://localhost:8000`
+
+---
+
+## 💻 Local Development
+
+**Backend:**
+```bash
+cd backend
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8000
+```
+
+**Frontend:**
+```bash
+cd frontend
+npm install
+npm run dev
+```

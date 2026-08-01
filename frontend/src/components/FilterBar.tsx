@@ -28,6 +28,7 @@ interface FilterBarProps {
   onCategoryChange: (val: string) => void;
   onStateChange: (val: string) => void;
   onClearFilters: () => void;
+  isDark: boolean;
 }
 
 export default function FilterBar({
@@ -39,19 +40,34 @@ export default function FilterBar({
   onCategoryChange,
   onStateChange,
   onClearFilters,
+  isDark,
 }: FilterBarProps) {
+  const containerBg = 'rgba(26, 20, 16, 0.92)';
+  const containerBorder = '#2E2418';
+  const inputBg = undefined;
+  const inputBorder = undefined;
+  const inputText = undefined;
+  const placeholderText = undefined;
+  const activeBorder = '#D4891A';
+  const activeText = '#D4891A';
   return (
-    <div className="flex h-12 w-full items-center border-b border-border bg-surface px-4 space-x-3 z-30">
+    <div className="fixed top-[56px] left-3 z-30 flex items-center px-4 py-2 space-x-3" style={{ background: containerBg, border: `1px solid ${containerBorder}`, borderRadius: 3 }}>
       {/* Agency Dropdown */}
       <div className="flex flex-col">
         <select
           value={selectedAgency}
           onChange={(e) => onAgencyChange(e.target.value)}
-          className={`h-8 w-60 rounded bg-bg px-2.5 text-xs text-text-primary border outline-none transition-colors ${
+          className={`h-8 w-60 px-2.5 text-xs border outline-none transition-colors ${
             selectedAgency
-              ? "border-cyan-custom font-medium"
-              : "border-border hover:border-text-muted text-text-muted"
+              ? "font-medium"
+              : "hover:border-text-muted"
           }`}
+          style={{
+            borderRadius: 3,
+            backgroundColor: inputBg,
+            borderColor: selectedAgency ? activeBorder : inputBorder,
+            color: selectedAgency ? activeText : (inputText || (selectedAgency ? undefined : undefined)),
+          }}
         >
           <option value="">Select Agency</option>
           {agencies.map((agency) => (
@@ -67,11 +83,17 @@ export default function FilterBar({
         <select
           value={selectedCategory}
           onChange={(e) => onCategoryChange(e.target.value)}
-          className={`h-8 w-44 rounded bg-bg px-2.5 text-xs text-text-primary border outline-none transition-colors capitalize ${
+          className={`h-8 w-44 px-2.5 text-xs border outline-none transition-colors capitalize ${
             selectedCategory
-              ? "border-cyan-custom font-medium"
-              : "border-border hover:border-text-muted text-text-muted"
+              ? "font-medium"
+              : "hover:border-text-muted"
           }`}
+          style={{
+            borderRadius: 3,
+            backgroundColor: inputBg,
+            borderColor: selectedCategory ? activeBorder : inputBorder,
+            color: selectedCategory ? activeText : (inputText || undefined),
+          }}
         >
           <option value="">Select Category</option>
           {CATEGORIES.map((cat) => (
@@ -87,11 +109,17 @@ export default function FilterBar({
         <select
           value={selectedState}
           onChange={(e) => onStateChange(e.target.value)}
-          className={`h-8 w-36 rounded bg-bg px-2.5 text-xs text-text-primary border outline-none transition-colors ${
+          className={`h-8 w-36 px-2.5 text-xs border outline-none transition-colors ${
             selectedState
-              ? "border-cyan-custom font-medium"
-              : "border-border hover:border-text-muted text-text-muted"
+              ? "font-medium"
+              : "hover:border-text-muted"
           }`}
+          style={{
+            borderRadius: 3,
+            backgroundColor: inputBg,
+            borderColor: selectedState ? activeBorder : inputBorder,
+            color: selectedState ? activeText : (inputText || undefined),
+          }}
         >
           <option value="">Select State</option>
           {US_STATES.map((st) => (
@@ -106,7 +134,15 @@ export default function FilterBar({
       {(selectedAgency || selectedCategory || selectedState) && (
         <button
           onClick={onClearFilters}
-          className="flex h-8 items-center justify-center rounded border border-border bg-bg px-3 text-xs font-medium text-text-muted transition-colors hover:border-cyan-custom hover:text-cyan-custom"
+          className="flex h-8 items-center justify-center px-3 text-xs font-medium transition-colors"
+          style={{
+            borderRadius: 3,
+            backgroundColor: inputBg,
+            border: `1px solid ${containerBorder}`,
+            color: '#7A6A55',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = activeBorder; e.currentTarget.style.color = activeText; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = containerBorder; e.currentTarget.style.color = '#7A6A55'; }}
         >
           Reset Filters
         </button>
