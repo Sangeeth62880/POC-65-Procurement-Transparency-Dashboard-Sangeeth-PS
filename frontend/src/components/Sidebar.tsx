@@ -37,6 +37,9 @@ interface SidebarProps {
   state: string;
   selectedStateData: StateData | null;
   onCloseStateDetail: () => void;
+  isOpen?: boolean;
+  onClose?: () => void;
+  isDark?: boolean;
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
@@ -59,7 +62,11 @@ export default function Sidebar({
   state,
   selectedStateData,
   onCloseStateDetail,
+  isOpen,
+  onClose,
+  isDark = true,
 }: SidebarProps) {
+
   // Aggregate states total metric
   const [totalObligation, setTotalObligation] = useState<number>(0);
   const [statesCount, setStatesCount] = useState<number>(0);
@@ -306,26 +313,55 @@ export default function Sidebar({
   };
 
   return (
-    <aside className="w-full h-full border-l border-border bg-surface flex flex-col justify-between overflow-hidden">
+    <aside
+      className="w-full h-full border-l border-border bg-surface flex flex-col justify-between overflow-hidden"
+    >
       {/* Premium Tab Bar (Sticky at top) */}
-      <div className="flex border-b border-border bg-bg p-2 space-x-1.5 shrink-0">
+      <div
+        className="flex items-center border-b border-border bg-bg p-2 space-x-1.5 shrink-0"
+      >
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="flex items-center justify-center w-7 h-7 border border-border bg-surface text-text-muted transition-colors hover:border-cyan-custom hover:text-cyan-custom shrink-0 cursor-pointer"
+            style={{ borderRadius: 3 }}
+            aria-label="Close panel"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        )}
         <button
           onClick={() => setActiveTab("obligations")}
-          className={`flex-1 text-center py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+          className={`flex-1 text-center py-1.5 text-[10px] font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer ${
             activeTab === "obligations"
-              ? "bg-surface text-cyan-custom border border-border shadow-md"
+              ? "bg-surface text-cyan-custom border border-border"
               : "text-text-muted hover:text-text-primary hover:bg-surface/30"
           }`}
+          style={{ borderRadius: 3 }}
         >
           Obligations
         </button>
         <button
           onClick={() => setActiveTab("opportunities")}
-          className={`flex-1 text-center py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+          className={`flex-1 text-center py-1.5 text-[10px] font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer ${
             activeTab === "opportunities"
-              ? "bg-surface text-cyan-custom border border-border shadow-md"
+              ? "bg-surface text-cyan-custom border border-border"
               : "text-text-muted hover:text-text-primary hover:bg-surface/30"
           }`}
+          style={{ borderRadius: 3 }}
         >
           Opportunities
         </button>
@@ -336,12 +372,12 @@ export default function Sidebar({
         {activeTab === "obligations" ? (
           <>
             {/* Section A — Header metric */}
-            <div className="border border-border bg-bg/50 p-4 rounded-md">
+            <div className="border border-border bg-bg/50 p-4" style={{ borderRadius: 3 }}>
               <div className="text-[10px] font-semibold uppercase tracking-widest text-text-muted mb-1.5">
                 Total Federal Awards
               </div>
               {isStatesLoading ? (
-                <div className="h-7 w-48 bg-surface rounded animate-pulse" />
+                <div className="h-7 w-48 bg-surface animate-pulse" style={{ borderRadius: 3 }} />
               ) : (
                 <div className="text-xl font-bold text-text-primary font-mono tracking-tight">
                   {formatterFull.format(totalObligation)}
@@ -366,7 +402,7 @@ export default function Sidebar({
 
             {/* Section D — Selected State Detail (Conditional) */}
             {selectedStateData && (
-              <div className="border border-cyan-custom/30 bg-cyan-custom/5 p-3.5 rounded-md space-y-3 relative">
+              <div className="p-3.5 space-y-3 relative" style={{ background: 'rgba(212,137,26,0.06)', border: '1px solid rgba(212,137,26,0.2)', borderRadius: 3 }}>
                 {/* Close button */}
                 <button
                   onClick={onCloseStateDetail}
@@ -397,28 +433,28 @@ export default function Sidebar({
                   </div>
                 </div>
 
-                <div className="flex justify-between border-t border-border/30 pt-2">
+                <div className="flex justify-between border-t border-border pt-2">
                   <span className="text-[10px] text-text-muted">Total Obligations</span>
                   <span className="text-[11px] font-bold text-text-primary font-mono">
                     {formatterFull.format(selectedStateData.amount)}
                   </span>
                 </div>
 
-                <div className="space-y-1.5 border-t border-border/30 pt-2">
+                <div className="space-y-1.5 border-t border-border pt-2">
                   <div className="text-[9px] uppercase font-bold tracking-wider text-text-muted">
                     Top State Awards
                   </div>
                   {isAwardsLoading ? (
                     <div className="space-y-1 animate-pulse">
-                      <div className="h-3 w-full bg-border rounded" />
-                      <div className="h-3 w-4/5 bg-border rounded" />
+                      <div className="h-3 w-full bg-border" style={{ borderRadius: 3 }} />
+                      <div className="h-3 w-4/5 bg-border" style={{ borderRadius: 3 }} />
                     </div>
                   ) : stateAwards.length === 0 ? (
                     <div className="text-[10px] text-text-muted italic">No state awards found</div>
                   ) : (
                     <div className="space-y-1.5">
                       {stateAwards.map((aw) => (
-                        <div key={aw.award_id} className="flex flex-col text-[10px] bg-bg/50 p-1.5 rounded border border-border/40">
+                        <div key={aw.award_id} className="flex flex-col text-[10px] bg-bg p-1.5 border border-border" style={{ borderRadius: 3 }}>
                           <div className="flex justify-between font-medium">
                             <span className="text-text-primary truncate max-w-36">{aw.vendor}</span>
                             <span className="text-cyan-custom font-mono">{formatterCompact.format(aw.amount)}</span>
@@ -447,15 +483,17 @@ export default function Sidebar({
                   <div className="h-6 w-full bg-bg/50 rounded" />
                 </div>
               ) : vendors.length === 0 ? (
-                <div className="text-[11px] text-text-muted italic text-center py-4 bg-bg/20 rounded border border-border">
+                <div className="text-[11px] text-text-muted italic text-center py-4 bg-bg/20 border border-border" style={{ borderRadius: 3 }}>
                   No allocation data available
                 </div>
               ) : (
-                <div className="overflow-hidden border border-border rounded-md">
+                <div className="overflow-hidden border border-border" style={{ borderRadius: 3 }}>
                   <table className="w-full border-collapse text-[10px]">
                     <thead>
                       {table.getHeaderGroups().map((headerGroup) => (
-                        <tr key={headerGroup.id} className="border-b border-border bg-bg/40 text-text-muted">
+                        <tr key={headerGroup.id}
+                          className="border-b border-border bg-bg text-text-muted"
+                        >
                           {headerGroup.headers.map((header) => (
                             <th key={header.id} className="p-2 font-medium text-left">
                               {flexRender(header.column.columnDef.header, header.getContext())}
@@ -469,8 +507,9 @@ export default function Sidebar({
                         <tr
                           key={row.id}
                           className={`border-b border-border last:border-0 hover:bg-bg/25 transition-colors ${
-                            idx === 0 ? "bg-cyan-custom/5 border-l border-l-cyan-custom" : ""
+                            idx === 0 ? "border-l-2 border-l-cyan-custom" : ""
                           }`}
+                          style={idx === 0 ? { background: 'rgba(212,137,26,0.05)' } : undefined}
                         >
                           {row.getVisibleCells().map((cell) => (
                             <td key={cell.id} className="p-2">
@@ -496,12 +535,16 @@ export default function Sidebar({
                 {isSimulatedFeed ? (
                   <span
                     title="No SAM_API_KEY detected in environment. Displaying simulated listings."
-                    className="inline-flex items-center px-2 py-0.5 rounded text-[8px] font-semibold bg-amber-500/10 text-amber-500 border border-amber-500/20"
+                    className="inline-flex items-center px-2 py-0.5 text-[8px] font-semibold"
+                    style={{ borderRadius: 3, background: 'rgba(212,137,26,0.08)', color: '#D4891A', border: '1px solid rgba(212,137,26,0.2)' }}
                   >
                     Simulated Feed
                   </span>
                 ) : (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[8px] font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                  <span
+                    className="inline-flex items-center px-2 py-0.5 text-[8px] font-semibold"
+                    style={{ borderRadius: 3, background: 'rgba(109,191,138,0.08)', color: '#6DBF8A', border: '1px solid rgba(109,191,138,0.2)' }}
+                  >
                     Live Feed
                   </span>
                 )}
@@ -514,12 +557,12 @@ export default function Sidebar({
             {/* Opportunities List */}
             {isOppsLoading ? (
               <div className="space-y-4 py-4 animate-pulse">
-                <div className="h-20 bg-bg/50 rounded-md border border-border/50" />
-                <div className="h-20 bg-bg/50 rounded-md border border-border/50" />
-                <div className="h-20 bg-bg/50 rounded-md border border-border/50" />
+                <div className="h-20 bg-bg/50 border border-border/50" style={{ borderRadius: 3 }} />
+                <div className="h-20 bg-bg/50 border border-border/50" style={{ borderRadius: 3 }} />
+                <div className="h-20 bg-bg/50 border border-border/50" style={{ borderRadius: 3 }} />
               </div>
             ) : opportunities.length === 0 ? (
-              <div className="text-[11px] text-text-muted italic text-center py-8 bg-bg/20 rounded border border-border">
+              <div className="text-[11px] text-text-muted italic text-center py-8 bg-bg/20 border border-border" style={{ borderRadius: 3 }}>
                 No active opportunities found
               </div>
             ) : (
@@ -527,17 +570,20 @@ export default function Sidebar({
                 {opportunities.map((opp) => (
                   <div
                     key={opp.notice_id}
-                    className="border border-border bg-bg/30 p-3 rounded-md space-y-2.5 hover:border-cyan-custom/40 transition-colors duration-200"
+                    className="border border-border bg-bg p-3 space-y-2.5 transition-colors duration-200"
+                    style={{ borderRadius: 3, borderColor: undefined }}
+                    onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(212,137,26,0.3)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#2E2418')}
                   >
                     <div className="flex items-start justify-between space-x-2">
                       <span className="text-[9px] font-bold tracking-wider font-mono text-text-muted shrink-0">
                         {opp.solicitation_number}
                       </span>
-                      <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase ${
-                        opp.notice_type.toLowerCase().includes("solicitation")
-                          ? "bg-cyan-custom/10 text-cyan-custom border border-cyan-custom/25"
-                          : "bg-indigo-custom/10 text-indigo-custom border border-indigo-custom/25"
-                      }`}>
+                      <span className={`px-1.5 py-0.5 text-[8px] font-bold uppercase`}
+                        style={opp.notice_type.toLowerCase().includes("solicitation")
+                          ? { borderRadius: 3, background: 'rgba(212,137,26,0.08)', color: '#D4891A', border: '1px solid rgba(212,137,26,0.2)' }
+                          : { borderRadius: 3, background: 'rgba(122,106,85,0.08)', color: '#7A6A55', border: '1px solid rgba(122,106,85,0.2)' }
+                        }>
                         {opp.notice_type.split("/").pop()}
                       </span>
                     </div>
@@ -546,7 +592,7 @@ export default function Sidebar({
                       {opp.title}
                     </h4>
 
-                    <div className="space-y-1 text-[9px] text-text-muted border-t border-border/30 pt-1.5">
+                    <div className="space-y-1 text-[9px] text-text-muted border-t border-border pt-1.5">
                       <div className="flex justify-between">
                         <span>Agency:</span>
                         <span className="font-semibold text-text-primary truncate max-w-44">{opp.department}</span>
@@ -571,7 +617,8 @@ export default function Sidebar({
                       href={opp.ui_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex h-7 w-full items-center justify-center rounded border border-border bg-bg text-[9px] font-bold uppercase tracking-wider text-text-muted transition-colors hover:border-cyan-custom hover:bg-cyan-custom/5 hover:text-cyan-custom"
+                      className="flex h-7 w-full items-center justify-center border border-border bg-bg text-[9px] font-bold uppercase tracking-wider text-text-muted transition-colors hover:border-cyan-custom hover:text-cyan-custom"
+                      style={{ borderRadius: 3 }}
                     >
                       View on SAM.gov
                       <svg
@@ -598,7 +645,8 @@ export default function Sidebar({
                     <button
                       disabled={oppsPage <= 1}
                       onClick={() => setOppsPage((p) => p - 1)}
-                      className="px-2 py-1 text-[9px] font-bold uppercase border border-border bg-bg/50 rounded hover:border-cyan-custom hover:text-cyan-custom disabled:opacity-40 disabled:hover:border-border disabled:hover:text-text-muted transition-colors"
+                      className="px-2 py-1 text-[9px] font-bold uppercase border border-border bg-bg rounded hover:border-cyan-custom hover:text-cyan-custom disabled:opacity-40 disabled:hover:border-border disabled:hover:text-text-muted transition-colors"
+                      style={{ borderRadius: 3 }}
                     >
                       Previous
                     </button>
@@ -608,7 +656,8 @@ export default function Sidebar({
                     <button
                       disabled={oppsPage >= Math.ceil(opportunitiesTotal / 5)}
                       onClick={() => setOppsPage((p) => p + 1)}
-                      className="px-2 py-1 text-[9px] font-bold uppercase border border-border bg-bg/50 rounded hover:border-cyan-custom hover:text-cyan-custom disabled:opacity-40 disabled:hover:border-border disabled:hover:text-text-muted transition-colors"
+                      className="px-2 py-1 text-[9px] font-bold uppercase border border-border bg-bg rounded hover:border-cyan-custom hover:text-cyan-custom disabled:opacity-40 disabled:hover:border-border disabled:hover:text-text-muted transition-colors"
+                      style={{ borderRadius: 3 }}
                     >
                       Next
                     </button>
@@ -621,12 +670,15 @@ export default function Sidebar({
       </div>
 
       {/* Sticky bottom CTA/Download Button */}
-      <div className="p-4 border-t border-border bg-surface shrink-0">
+      <div
+        className="p-4 border-t border-border bg-surface shrink-0"
+      >
         {activeTab === "obligations" ? (
           <a
             href={downloadUrl()}
             download
-            className="flex h-10 w-full items-center justify-center rounded border border-border bg-bg text-[11px] font-bold uppercase tracking-wider text-text-primary transition-colors hover:border-cyan-custom hover:bg-cyan-custom/5 hover:text-cyan-custom"
+            className="flex h-10 w-full items-center justify-center border border-border bg-bg text-[11px] font-bold uppercase tracking-wider text-text-primary transition-colors hover:border-cyan-custom hover:text-cyan-custom"
+            style={{ borderRadius: 3 }}
           >
             Download Sample Data
           </a>
@@ -635,7 +687,8 @@ export default function Sidebar({
             href="https://sam.gov/content/opportunities"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex h-10 w-full items-center justify-center rounded border border-border bg-bg text-[11px] font-bold uppercase tracking-wider text-text-primary transition-colors hover:border-cyan-custom hover:bg-cyan-custom/5 hover:text-cyan-custom"
+            className="flex h-10 w-full items-center justify-center border border-border bg-bg text-[11px] font-bold uppercase tracking-wider text-text-primary transition-colors hover:border-cyan-custom hover:text-cyan-custom"
+            style={{ borderRadius: 3 }}
           >
             Go to SAM.gov Portal
             <svg

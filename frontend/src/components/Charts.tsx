@@ -138,9 +138,9 @@ export default function Charts({ agency, category, state }: ChartsProps) {
     tooltip: {
       trigger: "axis",
       axisPointer: { type: "shadow" },
-      backgroundColor: "#0B1117",
-      borderColor: "#1F2937",
-      textStyle: { color: "#F1F5F9", fontSize: 10 },
+      backgroundColor: "#1A1410",
+      borderColor: "#2E2418",
+      textStyle: { color: "#F0E6D3", fontSize: 10 },
       formatter: (params: any) => {
         const item = params[0];
         return `<span class="text-text-muted font-medium">${item.name}</span><br/><span class="text-cyan-custom font-semibold">${compactFormatter.format(item.value)}</span>`;
@@ -156,17 +156,17 @@ export default function Charts({ agency, category, state }: ChartsProps) {
     xAxis: {
       type: "value",
       axisLabel: {
-        color: "#64748B",
+        color: "#7A6A55",
         fontSize: 9,
         formatter: (val: number) => compactFormatter.format(val),
       },
-      splitLine: { lineStyle: { color: "#1F2937" } },
+      splitLine: { lineStyle: { color: "#2E2418" } },
     },
     yAxis: {
       type: "category",
       data: categoryData.map((item) => item.name),
-      axisLabel: { color: "#64748B", fontSize: 9 },
-      axisLine: { lineStyle: { color: "#1F2937" } },
+      axisLabel: { color: "#7A6A55", fontSize: 9 },
+      axisLine: { lineStyle: { color: "#2E2418" } },
       axisTick: { show: false },
     },
     series: [
@@ -175,7 +175,7 @@ export default function Charts({ agency, category, state }: ChartsProps) {
         type: "bar",
         data: categoryData.map((item) => item.value),
         itemStyle: {
-          color: "#38BDF8",
+          color: "#D4891A",
           borderRadius: [0, 3, 3, 0],
         },
         barWidth: "40%",
@@ -189,9 +189,9 @@ export default function Charts({ agency, category, state }: ChartsProps) {
     tooltip: {
       trigger: "axis",
       axisPointer: { type: "shadow" },
-      backgroundColor: "#0B1117",
-      borderColor: "#1F2937",
-      textStyle: { color: "#F1F5F9", fontSize: 10 },
+      backgroundColor: "#1A1410",
+      borderColor: "#2E2418",
+      textStyle: { color: "#F0E6D3", fontSize: 10 },
       formatter: (params: any) => {
         const item = params[0];
         return `<span class="text-text-muted font-medium">${item.name}</span><br/><span class="text-indigo-custom font-semibold">${compactFormatter.format(item.value)}</span>`;
@@ -207,17 +207,17 @@ export default function Charts({ agency, category, state }: ChartsProps) {
     xAxis: {
       type: "value",
       axisLabel: {
-        color: "#64748B",
+        color: "#7A6A55",
         fontSize: 9,
         formatter: (val: number) => compactFormatter.format(val),
       },
-      splitLine: { lineStyle: { color: "#1F2937" } },
+      splitLine: { lineStyle: { color: "#2E2418" } },
     },
     yAxis: {
       type: "category",
       data: vendorData.map((item) => item.name),
-      axisLabel: { color: "#64748B", fontSize: 9 },
-      axisLine: { lineStyle: { color: "#1F2937" } },
+      axisLabel: { color: "#7A6A55", fontSize: 9 },
+      axisLine: { lineStyle: { color: "#2E2418" } },
       axisTick: { show: false },
     },
     series: [
@@ -226,7 +226,7 @@ export default function Charts({ agency, category, state }: ChartsProps) {
         type: "bar",
         data: vendorData.map((item) => item.value),
         itemStyle: {
-          color: "#818CF8",
+          color: "#C4791A",
           borderRadius: [0, 3, 3, 0],
         },
         barWidth: "40%",
@@ -237,15 +237,15 @@ export default function Charts({ agency, category, state }: ChartsProps) {
   if (isLoading) {
     return (
       <div className="flex h-full w-full flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 p-4">
-        <div className="flex-1 bg-surface border border-border rounded-md animate-pulse p-4 space-y-3">
-          <div className="h-3 w-32 bg-border rounded" />
-          <div className="h-6 w-full bg-border rounded" />
-          <div className="h-6 w-4/5 bg-border rounded" />
+        <div className="flex-1 bg-surface border border-border animate-pulse p-4 space-y-3" style={{ borderRadius: 3 }}>
+          <div className="h-3 w-32 bg-border" style={{ borderRadius: 3 }} />
+          <div className="h-6 w-full bg-border" style={{ borderRadius: 3 }} />
+          <div className="h-6 w-4/5 bg-border" style={{ borderRadius: 3 }} />
         </div>
-        <div className="flex-1 bg-surface border border-border rounded-md animate-pulse p-4 space-y-3">
-          <div className="h-3 w-32 bg-border rounded" />
-          <div className="h-6 w-full bg-border rounded" />
-          <div className="h-6 w-4/5 bg-border rounded" />
+        <div className="flex-1 bg-surface border border-border animate-pulse p-4 space-y-3" style={{ borderRadius: 3 }}>
+          <div className="h-3 w-32 bg-border" style={{ borderRadius: 3 }} />
+          <div className="h-6 w-full bg-border" style={{ borderRadius: 3 }} />
+          <div className="h-6 w-4/5 bg-border" style={{ borderRadius: 3 }} />
         </div>
       </div>
     );
@@ -265,7 +265,7 @@ export default function Charts({ agency, category, state }: ChartsProps) {
   return (
     <div className="flex h-full w-full flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-3 p-3 overflow-hidden">
       {/* Chart 1 */}
-      <div className="flex-1 min-h-0 border border-border bg-surface p-2.5 rounded-md flex flex-col h-full">
+      <div className="flex-1 min-h-0 border border-border bg-surface p-2.5 flex flex-col h-full" style={{ borderRadius: 3 }}>
         <span className="text-[10px] uppercase font-semibold tracking-wider text-text-muted">
           Obligations by Category
         </span>
@@ -285,7 +285,7 @@ export default function Charts({ agency, category, state }: ChartsProps) {
       </div>
 
       {/* Chart 2 */}
-      <div className="flex-1 min-w-0 border border-border bg-surface p-2.5 rounded-md flex flex-col h-full">
+      <div className="flex-1 min-w-0 border border-border bg-surface p-2.5 flex flex-col h-full" style={{ borderRadius: 3 }}>
         <span className="text-[10px] uppercase font-semibold tracking-wider text-text-muted">
           Top Vendor Allocations
         </span>

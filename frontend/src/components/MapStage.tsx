@@ -14,6 +14,8 @@ interface StateData {
 }
 
 interface MapStageProps {
+  styleUrl: string;
+  markerColor: string;
   agency: string;
   category: string;
   onStateClick: (state: StateData) => void;
@@ -21,19 +23,7 @@ interface MapStageProps {
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
 
-// Color interpolator between #818CF8 (low) and #38BDF8 (high)
-function interpolateColor(val: number, min: number, max: number) {
-  if (max === min) return "#38BDF8";
-  const ratio = (val - min) / (max - min);
-  // #818CF8 = rgb(129, 140, 248)
-  // #38BDF8 = rgb(56, 189, 248)
-  const r = Math.round(129 + ratio * (56 - 129));
-  const g = Math.round(140 + ratio * (189 - 140));
-  const b = Math.round(248 + ratio * (248 - 248));
-  return `rgb(${r}, ${g}, ${b})`;
-}
-
-export default function MapStage({ agency, category, onStateClick }: MapStageProps) {
+export default function MapStage({ styleUrl, markerColor, agency, category, onStateClick }: MapStageProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const statesDataRef = useRef<StateData[]>([]);
@@ -56,7 +46,7 @@ export default function MapStage({ agency, category, onStateClick }: MapStagePro
 
     const mapInstance = new maplibregl.Map({
       container: mapContainer.current,
-      style: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
+      style: styleUrl,
       center: [-98.5795, 39.8283], // Geometric center of the US
       zoom: 3.5,
       minZoom: 2,
@@ -168,7 +158,6 @@ export default function MapStage({ agency, category, onStateClick }: MapStagePro
       }
 
       const size = radius * 2;
-      const color = interpolateColor(state.amount, minAmount, maxAmount);
 
       return {
         type: "Feature" as const,
@@ -184,7 +173,6 @@ export default function MapStage({ agency, category, onStateClick }: MapStagePro
           per_capita: state.per_capita,
           per_capita_formatted: `$${Math.round(state.per_capita)}`,
           size,
-          color,
         },
       };
     });
@@ -219,10 +207,9 @@ export default function MapStage({ agency, category, onStateClick }: MapStagePro
         source: "states-source",
         paint: {
           "circle-radius": ["get", "size"],
-          "circle-color": ["get", "color"],
-          "circle-opacity": 0.55,
-          "circle-stroke-color": ["get", "color"],
-          "circle-stroke-width": 1,
+          "circle-color": markerColor,
+          "circle-opacity": 0.85,
+          "circle-stroke-width": 0,
         },
       },
       beforeId
@@ -302,9 +289,9 @@ export default function MapStage({ agency, category, onStateClick }: MapStagePro
             position: "absolute",
             left: tooltip.x + 12,
             top: tooltip.y - 40,
-            background: "#0B1117",
-            border: "1px solid #1F2937",
-            borderRadius: "4px",
+            background: "#1A1410",
+            border: "1px solid #2E2418",
+            borderRadius: 3,
             padding: "8px 12px",
             pointerEvents: "none",
             zIndex: 50,
@@ -312,13 +299,13 @@ export default function MapStage({ agency, category, onStateClick }: MapStagePro
             fontFamily: "inherit",
           }}
         >
-          <div style={{ color: "#F1F5F9", fontSize: "13px", fontWeight: 500 }}>
+          <div style={{ color: "#F0E6D3", fontSize: "13px", fontWeight: 500 }}>
             {tooltip.state_name}
           </div>
-          <div style={{ color: "#38BDF8", fontSize: "12px", marginTop: 2, fontWeight: 600 }}>
+          <div style={{ color: "#D4891A", fontSize: "12px", marginTop: 2, fontWeight: 600 }}>
             {tooltip.amount}
           </div>
-          <div style={{ color: "#64748B", fontSize: "11px", marginTop: 1 }}>
+          <div style={{ color: "#7A6A55", fontSize: "11px", marginTop: 1 }}>
             {tooltip.per_capita}
           </div>
         </div>
@@ -326,7 +313,7 @@ export default function MapStage({ agency, category, onStateClick }: MapStagePro
 
       {/* Loading overlay overlay */}
       {isLoading && (
-        <div className="absolute top-3 right-3 flex items-center space-x-2 border border-border bg-surface px-3 py-1.5 rounded-md z-30">
+        <div className="absolute top-3 right-3 flex items-center space-x-2 border border-border bg-surface px-3 py-1.5 z-30" style={{ borderRadius: 3 }}>
           <div className="h-2 w-2 rounded-full bg-cyan-custom animate-ping" />
           <span className="text-[10px] uppercase font-semibold tracking-wider text-text-muted animate-pulse">
             Fetching Map Data...
@@ -336,27 +323,27 @@ export default function MapStage({ agency, category, onStateClick }: MapStagePro
 
       {/* Error display */}
       {error && (
-        <div className="absolute top-3 right-3 border border-red-950 bg-red-950/20 px-3 py-1.5 rounded-md text-[10px] font-semibold text-red-400 z-30">
+        <div className="absolute top-3 right-3 border border-red-950 bg-red-950/20 px-3 py-1.5 text-[10px] font-semibold text-red-400 z-30" style={{ borderRadius: 3 }}>
           {error}
         </div>
       )}
 
       {/* Map Legend */}
-      <div className="absolute bottom-3 left-3 border border-border bg-surface/90 p-2.5 rounded-md text-[10px] space-y-1.5 z-30 backdrop-blur-xs">
-        <div className="font-semibold uppercase tracking-wider text-text-muted mb-1 text-[9px]">
+      <div className="absolute bottom-3 left-3 border border-border bg-surface p-2.5 text-[10px] space-y-1.5 z-30" style={{ borderRadius: 3, backgroundColor: "#1A1410", borderColor: "#2E2418" }}>
+        <div className="font-semibold uppercase tracking-wider mb-1 text-[9px]" style={{ color: "#7A6A55" }}>
           Obligation Scale
         </div>
         <div className="flex items-center space-x-2">
-          <div className="h-2 w-2 rounded-full" style={{ backgroundColor: "#818CF8" }} />
-          <span className="text-text-primary">Low Spending</span>
+          <div className="h-2 w-2 rounded-full" style={{ backgroundColor: markerColor }} />
+          <span style={{ color: "#F0E6D3" }}>Low Spending</span>
         </div>
         <div className="flex items-center space-x-2">
-          <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: "#5CADF8" }} />
-          <span className="text-text-primary">Medium Spending</span>
+          <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: markerColor }} />
+          <span style={{ color: "#F0E6D3" }}>Medium Spending</span>
         </div>
         <div className="flex items-center space-x-2">
-          <div className="h-3 w-3 rounded-full" style={{ backgroundColor: "#38BDF8" }} />
-          <span className="text-text-primary">High Spending</span>
+          <div className="h-3 w-3 rounded-full" style={{ backgroundColor: markerColor }} />
+          <span style={{ color: "#F0E6D3" }}>High Spending</span>
         </div>
       </div>
     </div>

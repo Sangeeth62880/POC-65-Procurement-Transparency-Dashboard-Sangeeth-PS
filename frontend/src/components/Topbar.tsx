@@ -2,104 +2,195 @@
 
 import React, { useState } from "react";
 
-export default function Topbar() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+interface TopbarProps {
+  isDark: boolean;
+  onToggleTheme: () => void;
+}
+
+export default function Topbar({ isDark, onToggleTheme }: TopbarProps) {
+  const [isInfoOpen, setIsInfoOpen] = useState(false);
+
+  const pillBg = "#1A1410";
+  const pillBorder = "#2E2418";
+  const textPrimary = "#F0E6D3";
+  const textMuted = "#7A6A55";
+  const dividerColor = "#2E2418";
+  const hoverBg = "rgba(255,255,255,0.08)";
 
   return (
     <>
-      <header className="flex h-12 w-full items-center justify-between border-b border-border bg-surface px-4 z-40">
-        {/* Left Section */}
-        <div className="flex items-center space-x-2">
-          <div className="h-3 w-3 bg-cyan-custom rounded-sm" />
-          <span className="text-[13px] font-medium tracking-wide text-text-primary">
-            Procurement Intelligence
+      {/* Floating centered pill */}
+      <nav
+        style={{
+          position: "fixed",
+          top: 12,
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 50,
+          height: 40,
+          background: pillBg,
+          border: `1px solid ${pillBorder}`,
+          borderRadius: 999,
+          padding: "0 16px",
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          whiteSpace: "nowrap",
+        }}
+      >
+        {/* Logo square */}
+        <div style={{ width: 10, height: 10, background: "#D4891A", borderRadius: 2, flexShrink: 0 }} />
+
+        {/* Title */}
+        <span style={{ fontSize: 13, fontWeight: 500, color: textPrimary }}>
+          Infocreon Internship &middot; Procurement Intelligence
+        </span>
+
+        {/* Divider */}
+        <div style={{ width: 1, height: 16, background: dividerColor, flexShrink: 0 }} />
+
+        {/* Live status */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" style={{ background: "#6DBF8A" }} />
+            <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: "#6DBF8A" }} />
+          </span>
+          <span style={{ fontSize: 11, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.05em", color: textMuted }}>
+            Live
           </span>
         </div>
 
-        {/* Right Section */}
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-1.5">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75"></span>
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
-            </span>
-            <span className="text-[11px] font-medium uppercase tracking-wider text-text-muted">
-              Live
-            </span>
-          </div>
+        {/* Spacer */}
+        <div style={{ flex: 1, minWidth: 8 }} />
 
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex h-6 w-6 items-center justify-center rounded-md border border-border bg-bg text-text-muted transition-colors hover:border-cyan-custom hover:text-cyan-custom"
-            aria-label="Information"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 16v-4" />
-              <path d="M12 8h.01" />
+        {/* Button 1 — Theme toggle */}
+        <button
+          onClick={onToggleTheme}
+          title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: 999,
+            border: "none",
+            background: "transparent",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            color: isDark ? "#D4891A" : "#7A6A55",
+            transition: "background 0.15s, color 0.15s",
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = hoverBg; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+        >
+          {isDark ? (
+            /* Sun icon — shown in dark mode */
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="5" />
+              <line x1="12" y1="1" x2="12" y2="3" />
+              <line x1="12" y1="21" x2="12" y2="23" />
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+              <line x1="1" y1="12" x2="3" y2="12" />
+              <line x1="21" y1="12" x2="23" y2="12" />
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
             </svg>
-          </button>
-        </div>
-      </header>
+          ) : (
+            /* Moon icon — shown in light mode */
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+            </svg>
+          )}
+        </button>
+
+        {/* Button 3 — Info modal */}
+        <button
+          onClick={() => setIsInfoOpen(true)}
+          title="System info"
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: 999,
+            border: "none",
+            background: "transparent",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            color: textMuted,
+            transition: "background 0.15s, color 0.15s",
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = hoverBg; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 16v-4" />
+            <path d="M12 8h.01" />
+          </svg>
+        </button>
+      </nav>
 
       {/* Info Modal Overlay */}
-      {isModalOpen && (
+      {isInfoOpen && (
         <div
-          className="fixed inset-0 flex items-center justify-center bg-black/60 z-50 transition-opacity"
-          onClick={() => setIsModalOpen(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(0,0,0,0.5)",
+            zIndex: 60,
+          }}
+          onClick={() => setIsInfoOpen(false)}
         >
           <div
-            className="w-full max-w-sm border border-border bg-surface p-5 text-left rounded-md"
+            style={{
+              background: "#1A1410",
+              border: "1px solid #2E2418",
+              borderRadius: 8,
+              padding: 20,
+              minWidth: 260,
+              maxWidth: 340,
+              width: "100%",
+            }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-border pb-3 mb-4">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-text-muted">
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid #2E2418", paddingBottom: 12, marginBottom: 16 }}>
+              <h3 style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", color: "#7A6A55", margin: 0 }}>
                 System Info
               </h3>
               <button
-                onClick={() => setIsModalOpen(false)}
-                className="text-text-muted transition-colors hover:text-text-primary"
+                onClick={() => setIsInfoOpen(false)}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "#7A6A55", transition: "color 0.15s", padding: 0 }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = "#F0E6D3"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = "#7A6A55"; }}
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18" />
                   <line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
               </button>
             </div>
 
-            <div className="space-y-3.5 text-xs">
-              <div className="flex justify-between border-b border-border/30 pb-2">
-                <span className="text-text-muted">Architect</span>
-                <span className="font-medium text-text-primary">Sangeeth PS</span>
-              </div>
-              <div className="flex justify-between border-b border-border/30 pb-2">
-                <span className="text-text-muted">Batch</span>
-                <span className="font-medium text-text-primary">Real Rails Batch 4</span>
-              </div>
-              <div className="flex flex-col space-y-1">
-                <span className="text-text-muted">Stack</span>
-                <span className="font-medium text-cyan-custom leading-relaxed">
-                  Next.js &middot; FastAPI &middot; MapLibre &middot; ECharts &middot; TanStack Table
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {[
+                { label: "Architect", value: "Sangeeth PS" },
+                { label: "POC ID", value: "65" },
+                { label: "POC Title", value: "Procurement Transparency Dashboard" },
+                { label: "Batch", value: "Batch 4" },
+              ].map((row, i) => (
+                <div key={row.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderBottom: "1px solid #2E2418", paddingBottom: 8 }}>
+                  <span style={{ fontSize: 10, textTransform: "uppercase", color: "#7A6A55" }}>{row.label}</span>
+                  <span style={{ fontSize: 13, fontWeight: 500, color: "#F0E6D3" }}>{row.value}</span>
+                </div>
+              ))}
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <span style={{ fontSize: 10, textTransform: "uppercase", color: "#7A6A55" }}>Stack</span>
+                <span style={{ fontSize: 13, fontWeight: 500, color: "#F0E6D3", lineHeight: 1.6 }}>
+                  Next.js &middot; FastAPI &middot; MapLibre &middot; ECharts
                 </span>
               </div>
             </div>

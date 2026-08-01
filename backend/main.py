@@ -40,9 +40,16 @@ def is_valid_api_key(key: str | None) -> bool:
 # ---------------------------------------------------------------------------
 app = FastAPI(title="Procurement Intelligence API")
 
+cors_origins_env = os.getenv("CORS_ORIGINS", "*")
+
+if cors_origins_env == "*":
+    cors_origins = ["*"]
+else:
+    cors_origins = [o.strip() for o in cors_origins_env.split(",")]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=cors_origins,
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
